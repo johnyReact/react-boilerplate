@@ -1,0 +1,21 @@
+// these are the precommit examples
+
+feat: new feature
+
+fix: bug fix
+
+refactor: code change that isn’t a feature or bug fix
+
+chore: tooling / deps / config changes
+
+docs: documentation only
+
+test: tests only
+
+style: formatting only (no logic change)
+
+perf: performance improvement
+
+build: build system changes
+
+ci: CI pipeline changes
