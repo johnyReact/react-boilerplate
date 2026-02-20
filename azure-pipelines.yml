@@ -1,19 +1,64 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 trigger:
-- main
+  branches:
+    include:
+      - dev
+      - main
 
 pool:
-  vmImage: ubuntu-latest
+  name: Default  
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+stages:
+- stage: Build
+  displayName: Build
+  jobs:
+  - job: build
+    displayName: Build artifact
+    steps:
+    - powershell: |
+        New-Item -ItemType Directory -Force -Path drop | Out-Null
+        "Hello from build $(Build.BuildNumber) on branch $(Build.SourceBranchName)" | Out-File -Encoding utf8 drop\index.html
+      displayName: Create sample output
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+    - publish: drop
+      artifact: drop
+      displayName: Publish artifact
+
+- stage: Deploy_Dev
+  displayName: Deploy to DEV
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/dev')
+  jobs:
+  - deployment: dev
+    displayName: Deploy DEV
+    environment: dev
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: drop
+          - powershell: |
+              $dest = "$env:USERPROFILE\deploy\dev"
+              New-Item -ItemType Directory -Force -Path $dest | Out-Null
+              Copy-Item "$(Pipeline.Workspace)\drop\*" $dest -Recurse -Force
+              Write-Host "Deployed to $dest"
+            displayName: Copy to DEV folder
+
+- stage: Deploy_Prod
+  displayName: Deploy to PROD
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')
+  jobs:
+  - deployment: prod
+    displayName: Deploy PROD
+    environment: prod
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+            artifact: drop
+          - powershell: |
+              $dest = "$env:USERPROFILE\deploy\prod"
+              New-Item -ItemType Directory -Force -Path $dest | Out-Null
+              Copy-Item "$(Pipeline.Workspace)\drop\*" $dest -Recurse -Force
+              Write-Host "Deployed to $dest"
+            displayName: Copy to PROD folder
